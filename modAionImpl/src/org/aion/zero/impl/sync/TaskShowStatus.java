@@ -51,7 +51,7 @@ final class TaskShowStatus implements Runnable {
 
     private final AionBlockchainImpl chain;
 
-    private final AtomicLong jump;
+    private final RevertPoint jump;
 
     private final AtomicReference<NetworkStatus> networkStatus;
 
@@ -59,7 +59,7 @@ final class TaskShowStatus implements Runnable {
 
     private final Logger log;
 
-    TaskShowStatus(final AtomicBoolean _start, int _interval, final AionBlockchainImpl _chain, final AtomicLong _jump, final AtomicReference<NetworkStatus> _networkStatus, final SyncStatis _statis, final Logger _log){
+    TaskShowStatus(final AtomicBoolean _start, int _interval, final AionBlockchainImpl _chain, final RevertPoint _jump, final AtomicReference<NetworkStatus> _networkStatus, final SyncStatis _statis, final Logger _log){
         this.start = _start;
         this.interval = _interval;
         this.chain = _chain;

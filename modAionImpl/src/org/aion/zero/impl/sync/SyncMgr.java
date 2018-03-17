@@ -78,7 +78,7 @@ public final class SyncMgr {
     // set as last block number within one batch import when first block for
     // imported success as best
     // reset to 0 as any block import result as no parent (side chain)
-    private AtomicLong jump;
+    private RevertPoint jump;
 
     private AtomicReference<NetworkStatus> networkStatus = new AtomicReference<>(new NetworkStatus());
 
@@ -88,10 +88,20 @@ public final class SyncMgr {
     // store validated headers from network
     private final BlockingQueue<HeadersWrapper> importedHeaders = new LinkedBlockingQueue<>();
 
-    // store blocks that ready to save to db
-    private final BlockingQueue<List<AionBlock>> importedBlocks = new LinkedBlockingQueue<>();
+    public static class PeerBlocks {
+        int id;
+        List<AionBlock> blocks;
 
-    //private ExecutorService workers = Executors.newFixedThreadPool(5);
+        public PeerBlocks(int i, List<AionBlock> bs) {
+            id = i;
+            blocks = bs;
+        }
+    }
+
+    // store blocks that ready to save to db
+    private final BlockingQueue<PeerBlocks> importedBlocks = new LinkedBlockingQueue<>();
+
+    // private ExecutorService workers = Executors.newFixedThreadPool(5);
     private ExecutorService workers = Executors.newCachedThreadPool();
 
     private static final class AionSyncMgrHolder {
@@ -104,11 +114,14 @@ public final class SyncMgr {
 
     /**
      *
-     * @param _displayId String
-     * @param _nodeBestBlockNumber long
-     * @param _nodeBestBlockHash byte[]
-     * @param _totalDiff byte[]
-     * fake td
+     * @param _displayId
+     *            String
+     * @param _nodeBestBlockNumber
+     *            long
+     * @param _nodeBestBlockHash
+     *            byte[]
+     * @param _totalDiff
+     *            byte[] fake td
      *
      */
     public synchronized void updateNetworkBestBlock(String _displayId, long _nodeBestBlockNumber,
@@ -133,7 +146,7 @@ public final class SyncMgr {
             }
         }
 
-        if (this.networkStatus.get().blockNumber <= selfBestBlockNumber){
+        if (this.networkStatus.get().blockNumber <= selfBestBlockNumber) {
             this.evtMgr.newEvent(new EventConsensus(EventConsensus.CALLBACK.ON_SYNC_DONE));
             if (log.isDebugEnabled()) {
                 log.debug(
@@ -157,14 +170,17 @@ public final class SyncMgr {
         this.blocksQueueMax = _blocksQueueMax;
 
         long selfBest = this.blockchain.getBestBlock().getNumber();
-        this.jump = new AtomicLong( selfBest + 1);
+        this.jump = new RevertPoint(selfBest + 1);
         this.statis = new SyncStatis(selfBest);
 
-        new Thread(new TaskGetBodies(this.p2pMgr, this.start, this.importedHeaders, this.sentHeaders), "sync-gh").start();
-        new Thread(new TaskImportBlocks(this, this.blockchain, this.start, this.jump, this.importedBlocks, this.statis, log), "sync-ib").start();
+        new Thread(new TaskGetBodies(this.p2pMgr, this.start, this.importedHeaders, this.sentHeaders), "sync-gh")
+                .start();
+        new Thread(new TaskImportBlocks(this, this.blockchain, this.start, this.jump, this.importedBlocks, this.statis,
+                log), "sync-ib").start();
         new Thread(new TaskGetStatus(this.start, INTERVAL_GET_STATUS, this.p2pMgr, log), "sync-gs").start();
-        if(_showStatus)
-            new Thread(new TaskShowStatus(this.start, INTERVAL_SHOW_STATUS, this.blockchain, this.jump,  this.networkStatus, this.statis, log), "sync-ss").start();
+        if (_showStatus)
+            new Thread(new TaskShowStatus(this.start, INTERVAL_SHOW_STATUS, this.blockchain, this.jump,
+                    this.networkStatus, this.statis, log), "sync-ss").start();
 
         setupEventHandler();
     }
@@ -175,15 +191,18 @@ public final class SyncMgr {
         this.evtMgr.registerEvent(events);
     }
 
-    void getHeaders(){
+    void getHeaders() {
         workers.submit(new TaskGetHeaders(p2pMgr, networkStatus, jump, this.syncForwardMax));
     }
 
     /**
      *
-     * @param _nodeIdHashcode int
-     * @param _displayId String
-     * @param _headers List validate headers batch and add batch to imported headers
+     * @param _nodeIdHashcode
+     *            int
+     * @param _displayId
+     *            String
+     * @param _headers
+     *            List validate headers batch and add batch to imported headers
      */
     public void validateAndAddHeaders(int _nodeIdHashcode, String _displayId, final List<A0BlockHeader> _headers) {
         if (_headers == null || _headers.isEmpty()) {
@@ -198,11 +217,13 @@ public final class SyncMgr {
     }
 
     /**
-     * @param _nodeIdHashcode int
-     * @param _displayId String
-     * @param _bodies List<byte[]>
-     * Assemble and validate blocks batch and add batch
-     * to import queue from network response blocks bodies
+     * @param _nodeIdHashcode
+     *            int
+     * @param _displayId
+     *            String
+     * @param _bodies
+     *            List<byte[]> Assemble and validate blocks batch and add batch
+     *            to import queue from network response blocks bodies
      */
     public void validateAndAddBlocks(int _nodeIdHashcode, String _displayId, final List<byte[]> _bodies) {
 
@@ -232,14 +253,14 @@ public final class SyncMgr {
             return;
 
         // add batch
-        importedBlocks.add(blocks);
+        importedBlocks.add(new PeerBlocks(_nodeIdHashcode, blocks));
 
         if (log.isDebugEnabled()) {
             log.debug("<incoming-bodies size={} from-num={} to-num={} from-node={}>", m, blocks.get(0).getNumber(),
                     blocks.get(blocks.size() - 1).getNumber(), _displayId);
         }
     }
-    
+
     public long getNetworkBestBlockNumber() {
         return this.networkStatus.get().blockNumber;
 

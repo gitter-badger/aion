@@ -47,11 +47,12 @@ final class TaskGetHeaders implements Runnable {
 
     private final AtomicReference<NetworkStatus> networkStatus;
 
-    private final AtomicLong jump;
+    private final RevertPoint jump;
 
     private final int syncForwardMax;
 
-    TaskGetHeaders(final IP2pMgr _p2p, final AtomicReference<NetworkStatus> _networkStatus, final AtomicLong _jump, int _syncForwardMax){
+    TaskGetHeaders(final IP2pMgr _p2p, final AtomicReference<NetworkStatus> _networkStatus, final RevertPoint _jump,
+            int _syncForwardMax) {
         this.p2p = _p2p;
         this.networkStatus = _networkStatus;
         this.jump = _jump;
@@ -63,17 +64,35 @@ final class TaskGetHeaders implements Runnable {
         Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
         Set<Integer> ids = new HashSet<>();
         Collection<INode> preFilter = this.p2p.getActiveNodes().values();
-        List<INode> filtered = preFilter.stream().filter(
-                (n) -> this.networkStatus.get().totalDiff != null &&
-                        n.getTotalDifficulty() != null &&
-                        (new BigInteger(1, n.getTotalDifficulty())).compareTo(this.networkStatus.get().totalDiff) >= 0).collect(Collectors.toList());
-        Random r = new Random(System.currentTimeMillis());
-        for (int i = 0; i < 2; i++) {
-            if (filtered.size() > 0) {
-                INode node = filtered.get(r.nextInt(filtered.size()));
-                if (!ids.contains(node.getIdHash())) {
-                    ids.add(node.getIdHash());
-                    this.p2p.send(node.getIdHash(), new ReqBlocksHeaders(jump.get(), this.syncForwardMax));
+
+        List<INode> filtered = preFilter
+                .stream().filter(
+                        (n) -> this.networkStatus.get().totalDiff != null && n.getTotalDifficulty() != null
+                                && (new BigInteger(1, n.getTotalDifficulty()))
+                                        .compareTo(this.networkStatus.get().totalDiff) >= 0)
+                .collect(Collectors.toList());
+
+        if (jump.isRevert()) {
+
+            for (INode n : filtered) {
+                if (jump.isRevertPeer(n.getIdHash())) {
+                    if (!ids.contains(n.getIdHash())) {
+                        ids.add(n.getIdHash());
+                        this.p2p.send(n.getIdHash(), new ReqBlocksHeaders(jump.get(), this.syncForwardMax));
+                    }
+                }
+            }
+
+        } else {
+            Random r = new Random(System.currentTimeMillis());
+
+            for (int i = 0; i < 2; i++) {
+                if (filtered.size() > 0) {
+                    INode node = filtered.get(r.nextInt(filtered.size()));
+                    if (!ids.contains(node.getIdHash())) {
+                        ids.add(node.getIdHash());
+                        this.p2p.send(node.getIdHash(), new ReqBlocksHeaders(jump.get(), this.syncForwardMax));
+                    }
                 }
             }
         }
