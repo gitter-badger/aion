@@ -83,7 +83,7 @@ public final class HttpServer {
     /**
      * References
      */
-    private static ApiWeb3Aion api = new ApiWeb3Aion(AionImpl.inst());
+    private static ApiWeb3Aion api = cfg.getRpc().getWeb3() ? new ApiWeb3Aion(AionImpl.inst()) : null;
     private static IP2pMgr p2pMgr;
     private static Selector selector;
 
@@ -120,15 +120,32 @@ public final class HttpServer {
          * web3
          */
         case eth_accounts:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
+
             return processResult(_id, new JSONArray(api.getAccounts()));
 
         case eth_blockNumber:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
+
             return processResult(_id, api.getBestBlock().getNumber());
 
         case eth_coinbase:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
+
             return processResult(_id, api.getCoinbase());
 
         case eth_compileSolidity:
+
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
+
             @SuppressWarnings("unchecked")
             Map<String, CompiledContr> compiled = api.contract_compileSolidity(params.get(0) + "");
             jsonObj = new JSONObject();
@@ -139,12 +156,18 @@ public final class HttpServer {
             return processResult(_id, jsonObj);
 
         case personal_unlockAccount:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             String account = (String) params.get(0);
             String password = (String) params.get(1);
             int duration = new BigInteger(params.get(2).equals(null) ? "300" : params.get(2) + "").intValue();
             return processResult(_id, api.unlockAccount(account, password, duration));
 
         case eth_getBlockByNumber: {
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             String number = (String) params.get(0);
             boolean fullTransactions = Boolean.parseBoolean(params.get(1) + "");
 
@@ -156,6 +179,9 @@ public final class HttpServer {
         }
 
         case eth_getBlockByHash: {
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             String hashString = (String) params.get(0);
                 boolean fullTransactions = Boolean.parseBoolean(params.get(1) + "");
             if (hashString == null) {
@@ -166,6 +192,9 @@ public final class HttpServer {
         }
 
         case eth_getBalance:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             String address = params.get(0) + "";
             return processResult(_id, TypeConverter.toJsonHex(api.getBalance(address)));
         /*
@@ -176,6 +205,9 @@ public final class HttpServer {
             return processResult(_id, toHexString(HashUtil.h256(api.getBestBlock().getHeader().getHeaderBytes(true))));
         */
         case eth_syncing:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             SyncInfo syncInfo = api.getSync();
             if (!syncInfo.done) {
                 JSONObject obj = new JSONObject();
@@ -191,6 +223,9 @@ public final class HttpServer {
             }
 
         case eth_call:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             if (JSONArray.class.isInstance(_params)) {
                 JSONObject paramsObj = ((JSONArray) _params).getJSONObject(0);
                 ArgTxCall txParams = ArgTxCall.fromJSON(paramsObj);
@@ -202,6 +237,9 @@ public final class HttpServer {
             return processResult(_id, "");
 
         case eth_estimateGas: {
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             if (_params instanceof JSONArray) {
                 JSONObject obj = ((JSONArray) _params).getJSONObject(0);
                 ArgTxCall txParams = ArgTxCall.fromJSON(obj);
@@ -213,6 +251,9 @@ public final class HttpServer {
             return processResult(_id, "");
         }
         case eth_sendTransaction:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             JSONObject paramsObj = ((JSONArray) _params).getJSONObject(0);
             ArgTxCall txParams = ArgTxCall.fromJSON(paramsObj);
             if (txParams != null) {
@@ -222,6 +263,9 @@ public final class HttpServer {
                 return processResult(_id, "");
 
         case eth_sendRawTransaction: {
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             String rawHexString = (String) params.get(0);
             if (rawHexString == null) {
                 log.debug("eth_sendRawTransaction invalid input");
@@ -240,9 +284,15 @@ public final class HttpServer {
         }
 
         case eth_newBlockFilter:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             return processResult(_id, api.eth_newBlockFilter());
 
         case eth_newFilter:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             ArgFltr fltr = new ArgFltr();
 
             /*
@@ -261,6 +311,9 @@ public final class HttpServer {
             return processResult(_id, api.eth_getFilterChanges(params.get(0) + ""));
 
         case eth_getTransactionReceipt:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             jsonObj = new JSONObject();
             TxRecpt txR = api.eth_getTransactionReceipt((String) params.get(0));
             if (txR != null) {
@@ -300,6 +353,9 @@ public final class HttpServer {
             return processResult(_id, jsonObj);
 
         case eth_getTransactionByHash: {
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             Tx transaction = api.eth_getTransactionByHash((String) params.get(0));
             JSONObject obj = new JSONObject();
 
@@ -321,6 +377,9 @@ public final class HttpServer {
             return processResult(_id, obj);
         }
         case eth_getTransactionCount: {
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             String addr = (String) params.get(0);
             String requestedState = (String) params.get(1);
 
@@ -330,9 +389,15 @@ public final class HttpServer {
             return processResult(_id, nonce.toHexString());
         }
         case eth_getCode:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             return processResult(_id, api.eth_getCode(params.get(0) + ""));
 
         case eth_uninstallFilter:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             return processResult(_id, api.eth_uninstallFilter(params.get(0) + ""));
 
         /*
@@ -342,12 +407,18 @@ public final class HttpServer {
             return processResult(_id, true);
 
         case net_peerCount:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             return processResult(_id, api.peerCount());
 
         /*
          * debug
          */
         case debug_getBlocksByNumber:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             String number = params.get(0) + "";
             boolean fullTransactions = Boolean.parseBoolean(params.get(1) + "");
 
@@ -374,6 +445,9 @@ public final class HttpServer {
             return processResult(_id, jsonObj);
 
         case getblocktemplate:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
 
             // TODO: Change this to a synchronized map implementation mapping
             // block hashes to the block. Allow multiple block templates at same
@@ -456,6 +530,9 @@ public final class HttpServer {
             return processResult(_id, 0x4000);
         // TODO: This needs to be refactored to return valid data
         case getmininginfo:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             bestBlock = api.getBestBlock();
             jsonObj = new JSONObject();
             jsonObj.put("blocks", bestBlock.getNumber());
@@ -470,7 +547,9 @@ public final class HttpServer {
             return processResult(_id, jsonObj);
 
         case submitblock:
-
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
             jsonObj = new JSONObject();
 
             if (params.length() > 0) {
@@ -520,6 +599,10 @@ public final class HttpServer {
             }
 
         case getHeaderByBlockNumber:
+            if (api == null) {
+                return processResult(_id, "web3 is not active!");
+            }
+
             jsonObj = new JSONObject();
 
             if (params.length() == 1) {

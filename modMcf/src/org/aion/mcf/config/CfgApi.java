@@ -39,11 +39,14 @@ public final class CfgApi {
     public CfgApi() {
         this.rpc = new CfgApiRpc();
         this.zmq = new CfgApiZmq();
+        this.filter = new CfgEvtFilter();
     }
 
     private CfgApiZmq zmq;
 
     private CfgApiRpc rpc;
+
+    private CfgEvtFilter filter;
 
     public void fromXML(final XMLStreamReader sr) throws XMLStreamException {
         loop:
@@ -57,6 +60,9 @@ public final class CfgApi {
                     break;
                 case "rpc":
                     this.rpc.fromXML(sr);
+                    break;
+                case "filter":
+                    this.filter.fromXML(sr);
                     break;
                 default:
                     Cfg.skipElement(sr);
@@ -82,6 +88,7 @@ public final class CfgApi {
 
             xmlWriter.writeCharacters(this.rpc.toXML());
             xmlWriter.writeCharacters(this.zmq.toXML());
+            xmlWriter.writeCharacters(this.filter.toXML());
 
             xmlWriter.writeCharacters("\r\n\t");
             xmlWriter.writeEndElement();
@@ -104,5 +111,7 @@ public final class CfgApi {
     public CfgApiZmq getZmq() {
         return this.zmq;
     }
+
+    public CfgEvtFilter getFilter() {return this.filter; }
 
 }

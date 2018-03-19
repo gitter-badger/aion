@@ -24,118 +24,34 @@
 
 package org.aion.api.server.http;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import org.aion.api.server.ApiAion;
 import org.aion.api.server.IRpc;
 import org.aion.api.server.types.*;
-import org.aion.base.type.*;
+import org.aion.base.type.Address;
 import org.aion.base.util.ByteArrayWrapper;
 import org.aion.base.util.ByteUtil;
-import org.aion.zero.impl.db.AionBlockStore;
-import org.apache.commons.collections4.map.LRUMap;
 import org.aion.base.util.TypeConverter;
-import org.aion.mcf.core.AccountState;
 import org.aion.equihash.Solution;
-import org.aion.evtmgr.IHandler;
-import org.aion.evtmgr.impl.callback.EventCallbackA0;
-import org.aion.evtmgr.impl.evt.EventTx;
-import org.aion.mcf.vm.types.Log;
+import org.aion.mcf.core.AccountState;
 import org.aion.mcf.types.AbstractTxReceipt;
+import org.aion.mcf.vm.types.Log;
 import org.aion.zero.impl.blockchain.AionImpl;
 import org.aion.zero.impl.blockchain.IAionChain;
+import org.aion.zero.impl.db.AionBlockStore;
 import org.aion.zero.impl.types.AionBlock;
-import org.aion.zero.impl.types.AionBlockSummary;
 import org.aion.zero.types.AionTransaction;
-import org.aion.zero.types.AionTxReceipt;
-import org.aion.zero.types.IAionBlock;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 final class ApiWeb3Aion extends ApiAion implements IRpc {
 
     ApiWeb3Aion(final IAionChain _ac) {
         super(_ac);
-        this.pendingReceipts = Collections.synchronizedMap(new LRUMap<>(FLTRS_MAX, 100));
-
-        IHandler blkHr = this.ac.getAionHub().getEventMgr().getHandler(2);
-        if (blkHr != null) {
-            blkHr.eventCallback(
-                    new EventCallbackA0<IBlock, ITransaction, ITxReceipt, IBlockSummary, ITxExecSummary, ISolution>() {
-                        public void onBlock(final IBlockSummary _bs) {
-                            AionBlockSummary bs = (AionBlockSummary) _bs;
-                            IAionBlock b = bs.getBlock();
-                            List<AionTransaction> txs = b.getTransactionsList();
-
-                            /*
-                             * TODO: fix it If dump empty txs list block to
-                             * onBlock filter leads null exception on
-                             * getTransactionReceipt
-                             */
-                            if (txs.size() > 0) {
-                                installedFilters.values().forEach((f) -> {
-                                    switch (f.getType()) {
-                                    case BLOCK:
-                                        f.add(new EvtBlk(b));
-                                        if (LOG.isDebugEnabled())
-                                            LOG.debug("<event-new-block num={} txs={}>", b.getNumber(), txs.size());
-                                        break;
-                                    case LOG:
-                                        List<AionTxReceipt> txrs = bs.getReceipts();
-                                        int txIndex = 0;
-                                        int lgIndex = 0;
-                                        for (AionTxReceipt txr : txrs) {
-                                            List<Log> infos = txr.getLogInfoList();
-                                            for (Log bi : infos) {
-                                                TxRecptLg txLg = new TxRecptLg(bi, b, txIndex, txr.getTransaction(),
-                                                        lgIndex);
-                                                txIndex++;
-                                                lgIndex++;
-                                                f.add(new EvtLg(txLg));
-                                            }
-                                        }
-                                        if (LOG.isDebugEnabled())
-                                            LOG.debug("<event-new-log num={} txs={}>", b.getNumber(), txs.size());
-                                        break;
-                                    default:
-                                        if (LOG.isDebugEnabled())
-                                            LOG.debug("<event-new-", b.getNumber(), txs.size());
-                                        break;
-                                    }
-                                });
-                            }
-                        }
-                    });
-        }
-
-        IHandler txHr = this.ac.getAionHub().getEventMgr().getHandler(1);
-        if (txHr != null) {
-            txHr.eventCallback(
-                    new EventCallbackA0<IBlock, ITransaction, ITxReceipt, IBlockSummary, ITxExecSummary, ISolution>() {
-                        public void onPendingTxUpdate(final ITxReceipt _txRcpt, final EventTx.STATE _state,
-                                final IBlock _blk) {
-                            ByteArrayWrapper txHashW = new ByteArrayWrapper(
-                                    ((AionTxReceipt) _txRcpt).getTransaction().getHash());
-                            if (_state.isPending() || _state == EventTx.STATE.DROPPED0) {
-                                pendingReceipts.put(txHashW, (AionTxReceipt) _txRcpt);
-                            } else {
-                                pendingReceipts.remove(txHashW);
-                            }
-                        }
-
-                        public void onPendingTxReceived(ITransaction _tx) {
-                            installedFilters.values().forEach((f) -> {
-                                if (f.getType() == Fltr.Type.TRANSACTION) {
-                                    f.add(new EvtTx((AionTransaction) _tx));
-                                }
-                            });
-                        }
-                    });
-        }
     }
 
     /*

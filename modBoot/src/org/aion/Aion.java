@@ -118,8 +118,9 @@ public class Aion {
             zmqThread.start();
         }
 
-        
-        HttpServer.start(ac.getAionHub().getP2pMgr());
+        if (cfg.getApi().getRpc().getActive()) {
+            HttpServer.start(ac.getAionHub().getP2pMgr());
+        }
 
         /*
          * This is a hack, but used to let us pass zmqThread into thread

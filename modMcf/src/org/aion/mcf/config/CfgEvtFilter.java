@@ -31,31 +31,21 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 
-/**
- * @author chris
- */
-public final class CfgApiRpc {
+public class CfgEvtFilter {
 
-    CfgApiRpc() {
+    CfgEvtFilter() {
         this.active = true;
-        this.ip = "127.0.0.1";
-        this.port = 8545;
-        this.web3 = true;
+        this.size = 1024;
     }
 
-    private boolean active;
+    protected boolean active;
 
-    private String ip;
+    protected short size;
 
-    private int port;
-
-    private boolean web3;
 
     public void fromXML(final XMLStreamReader sr) throws XMLStreamException {
         this.active = Boolean.parseBoolean(sr.getAttributeValue(null, "active"));
-        this.ip = sr.getAttributeValue(null, "ip");
-        this.port = Integer.parseInt(sr.getAttributeValue(null, "port"));
-        this.web3 = Boolean.parseBoolean(sr.getAttributeValue(null, "web3"));
+        this.size = Short.parseShort(sr.getAttributeValue(null, "size"));
         sr.next();
     }
 
@@ -65,17 +55,14 @@ public final class CfgApiRpc {
         XMLStreamWriter xmlWriter;
         String xml;
         try {
-            // <rpc active="false" ip="127.0.0.1" port="8545"/>
 
             Writer strWriter = new StringWriter();
             xmlWriter = output.createXMLStreamWriter(strWriter);
             xmlWriter.writeCharacters("\r\n\t\t");
-            xmlWriter.writeStartElement("rpc");
+            xmlWriter.writeStartElement("eventFilter");
 
             xmlWriter.writeAttribute("active", this.active ? "true" : "false");
-            xmlWriter.writeAttribute("ip", this.ip);
-            xmlWriter.writeAttribute("port", this.port + "");
-            xmlWriter.writeAttribute("web3", this.web3 ? "true" : "false");
+            xmlWriter.writeAttribute("size", this.size + "");
 
             xmlWriter.writeEndElement();
             xml = strWriter.toString();
@@ -94,17 +81,8 @@ public final class CfgApiRpc {
         return this.active;
     }
 
-    public String getIp() {
-        return this.ip;
+    public short getSize() {
+        return this.size;
     }
-
-    public int getPort() {
-        return this.port;
-    }
-
-    public boolean getWeb3() {
-        return this.web3;
-    }
-
 
 }

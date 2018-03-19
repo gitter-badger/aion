@@ -130,6 +130,6 @@ public class HdlrZmq implements IHdlr {
 
     public void shutdown() {
         this.getTxStatusQueue().add(new TxPendingStatus(null, null, null, 0, null));
-        this.api.txWait.add(new TxWaitingMappingUpdate(null, 0, null));
+        this.api.getTxWait().add(new TxWaitingMappingUpdate(null, 0, null));
     }
 }
