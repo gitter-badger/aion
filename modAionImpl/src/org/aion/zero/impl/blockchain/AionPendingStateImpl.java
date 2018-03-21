@@ -39,7 +39,9 @@ import org.aion.evtmgr.impl.evt.EventBlock;
 import org.aion.evtmgr.impl.evt.EventTx;
 import org.aion.log.AionLoggerFactory;
 import org.aion.log.LogEnum;
+import org.aion.mcf.account.Account;
 import org.aion.mcf.blockchain.IPendingStateInternal;
+import org.aion.mcf.core.AccountState;
 import org.aion.mcf.db.TransactionStore;
 import org.aion.mcf.evt.IListenerBase.PendingTransactionState;
 import org.aion.txpool.ITxPool;
@@ -538,25 +540,53 @@ public class AionPendingStateImpl
 
     private void updateState(IAionBlock block) {
 
-        pendingState = repository.startTracking();
-
-        List<AionTransaction> pendingTxl = this.txPool.snapshotAll();
-
+        List<AionTransaction> poolTxs = this.txPool.snapshotAll();
         if (LOG.isDebugEnabled()) {
-            LOG.debug("updateState - snapshotAll tx[{}]", pendingTxl.size());
+            LOG.debug("updateState - snapshotAll tx[{}]", poolTxs.size());
         }
-        for (AionTransaction tx : pendingTxl) {
+
+        Set<Address> pendingAccs = getTxsAccounts(poolTxs);
+
+        IRepositoryCache oldPs = pendingState.startTracking();
+
+        Set<Address> accs = getTxsAccounts(block.getTransactionsList());
+        for (Address addr : pendingAccs) {
+            if (!accs.contains(addr)) {
+                oldPs.getAccountState(addr);
+            }
+        }
+
+        pendingState.rollback();
+        oldPs.flush();
+
+        for (AionTransaction tx : poolTxs) {
             if (LOG.isTraceEnabled()) {
                 LOG.debug("updateState - loop: " + tx.toString());
             }
 
-            AionTxExecSummary txSum = executeTx(tx, false);
-            AionTxReceipt receipt = txSum.getReceipt();
+            AionTxReceipt receipt;
+            if (accs.contains(tx.getFrom())) {
+                AionTxExecSummary txSum = executeTx(tx, false);
+                receipt = txSum.getReceipt();
+            } else {
+                receipt = new AionTxReceipt();
+            }
+
             receipt.setTransaction(tx);
             fireTxUpdate(receipt, PendingTransactionState.PENDING, block);
         }
     }
-    
+
+    private Set<Address> getTxsAccounts(List<AionTransaction> txn) {
+        Set<Address> rtn = new HashSet<>();
+        for (AionTransaction tx : txn) {
+            if (!rtn.contains(tx.getFrom())) {
+                rtn.add(tx.getFrom());
+            }
+        }
+        return rtn;
+    }
+
     private AionTxExecSummary executeTx(AionTransaction tx, boolean inPool) {
 
         IAionBlock best = getBestBlock();
