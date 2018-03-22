@@ -25,7 +25,6 @@
 
 package org.aion.p2p.impl;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
@@ -361,8 +360,8 @@ public final class  P2pMgr implements IP2pMgr {
     private void configChannel(final SocketChannel _channel) throws IOException {
         _channel.configureBlocking(false);
         _channel.socket().setSoTimeout(TIMEOUT_MSG_READ);
-        _channel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
-        _channel.setOption(StandardSocketOptions.TCP_NODELAY, true);
+        _channel.setOption(StandardSocketOptions.SO_KEEPALIVE, false);
+        _channel.setOption(StandardSocketOptions.TCP_NODELAY, false);
         _channel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
     }
 
@@ -774,9 +773,9 @@ public final class  P2pMgr implements IP2pMgr {
     /**
      * for test
      */
-//    void clearTempNodes() {
-//        this.nodeMgr.clearTempNodes();
-//    }
+    void clearTempNodes() {
+        this.nodeMgr.clearTempNodes();
+    }
 
     int getTempNodesCount() {
         return nodeMgr.tempNodesSize();
