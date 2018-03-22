@@ -545,12 +545,9 @@ public class AionPendingStateImpl
             LOG.debug("updateState - snapshotAll tx[{}]", poolTxs.size());
         }
 
-        Set<Address> pendingAccs = getTxsAccounts(poolTxs);
-
         IRepositoryCache oldPs = pendingState.startTracking();
-
         Set<Address> accs = getTxsAccounts(block.getTransactionsList());
-        for (Address addr : pendingAccs) {
+        for (Address addr : getTxsAccounts(poolTxs)) {
             if (!accs.contains(addr)) {
                 oldPs.getAccountState(addr);
             }
@@ -561,7 +558,7 @@ public class AionPendingStateImpl
 
         for (AionTransaction tx : poolTxs) {
             if (LOG.isTraceEnabled()) {
-                LOG.debug("updateState - loop: " + tx.toString());
+                LOG.trace("updateState reCheck poolTx: " + tx.toString());
             }
 
             AionTxReceipt receipt;
