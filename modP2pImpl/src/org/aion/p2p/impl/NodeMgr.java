@@ -25,18 +25,19 @@
 
 package org.aion.p2p.impl;
 
-import java.math.BigInteger;
-import java.io.File;
-import java.io.FileInputStream;
+import org.aion.p2p.INode;
+import org.aion.p2p.INodeMgr;
+
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 import java.io.FileWriter;
-import java.io.IOException;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import org.aion.p2p.INode;
-import org.aion.p2p.INodeMgr;
-import javax.xml.stream.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class NodeMgr implements INodeMgr {
 
@@ -51,6 +52,7 @@ public class NodeMgr implements INodeMgr {
     private final Map<Integer, Node> outboundNodes = new ConcurrentHashMap<>();
     private final Map<Integer, Node> inboundNodes = new ConcurrentHashMap<>();
     private final Map<Integer, Node> activeNodes = new ConcurrentHashMap<>();
+    private final Node self = new Node(false, "Self");
 
     Map<Integer, Node> getOutboundNodes() {
         return outboundNodes;
@@ -117,6 +119,16 @@ public class NodeMgr implements INodeMgr {
                 } else
                     return tdCompare;
             });
+            try{
+                synchronized (self) {
+                    sb.append(String.format("id:%6s %c %16s %10d %64s %15s %5d %8s %15s\n", "", ' ',
+                            self.getTotalDifficulty().toString(10), self.getBestBlockNumber(),
+                            self.getBestBlockHash() == null ? "" : bytesToHex(self.getBestBlockHash()), "", 0, "", ""));
+                }
+            } catch(Exception ex){
+                ex.printStackTrace();
+            }
+
             for (Node n : sorted) {
                 try{
                     sb.append(
@@ -167,6 +179,14 @@ public class NodeMgr implements INodeMgr {
             }
         }
     }
+
+    @Override
+    public void updateSelfInfo(BigInteger selfTd, long number, byte[] hash) {
+        synchronized (self) {
+            self.updateStatus(number, hash, selfTd);
+        }
+    }
+
 
     /**
      * @param _n Node

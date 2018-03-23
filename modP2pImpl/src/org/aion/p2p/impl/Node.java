@@ -101,7 +101,7 @@ public final class Node implements INode {
     /**
      * constructor for initial stage of persisted peer info from file system
      */
-    private Node(boolean fromBootList, String _ipStr) {
+    Node(boolean fromBootList, String _ipStr) {
         this.fromBootList = fromBootList;
         this.idHash = 0;
         this.ip = ipStrToBytes(_ipStr);

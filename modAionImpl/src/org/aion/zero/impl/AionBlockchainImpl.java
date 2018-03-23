@@ -52,7 +52,6 @@ import org.aion.rlp.RLP;
 import org.aion.vm.TransactionExecutor;
 import org.aion.zero.impl.blockchain.ChainConfiguration;
 import org.aion.zero.impl.config.CfgAion;
-import org.aion.mcf.config.CfgReports;
 import org.aion.zero.impl.core.IAionBlockchain;
 import org.aion.zero.impl.db.AionBlockStore;
 import org.aion.zero.impl.db.AionRepositoryImpl;
@@ -67,12 +66,9 @@ import org.aion.zero.types.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import static java.lang.Math.max;
 import static java.lang.Runtime.getRuntime;
@@ -971,9 +967,15 @@ public class AionBlockchainImpl implements IAionBlockchain {
 
         setBestBlock(block);
 
+        updateP2pInfo();
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("block added to the blockChain: index: [{}]", block.getNumber());
         }
+    }
+
+    private void updateP2pInfo() {
+
     }
 
     public boolean hasParentOnTheChain(AionBlock block) {

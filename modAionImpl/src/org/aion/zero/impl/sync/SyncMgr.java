@@ -30,26 +30,26 @@
 
 package org.aion.zero.impl.sync;
 
-import java.math.BigInteger;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.aion.base.util.ByteArrayWrapper;
 import org.aion.base.util.Hex;
-import org.aion.mcf.valid.BlockHeaderValidator;
-import org.aion.zero.impl.blockchain.ChainConfiguration;
-import org.apache.commons.collections4.map.LRUMap;
-import org.slf4j.Logger;
 import org.aion.evtmgr.IEvent;
 import org.aion.evtmgr.IEventMgr;
 import org.aion.evtmgr.impl.evt.EventConsensus;
 import org.aion.log.AionLoggerFactory;
 import org.aion.log.LogEnum;
+import org.aion.mcf.valid.BlockHeaderValidator;
 import org.aion.p2p.IP2pMgr;
 import org.aion.zero.impl.AionBlockchainImpl;
+import org.aion.zero.impl.blockchain.ChainConfiguration;
 import org.aion.zero.impl.types.AionBlock;
 import org.aion.zero.types.A0BlockHeader;
+import org.apache.commons.collections4.map.LRUMap;
+import org.slf4j.Logger;
+
+import java.math.BigInteger;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author chris
@@ -123,6 +123,8 @@ public final class SyncMgr {
 
         // self
         BigInteger selfTd = this.chain.getTotalDifficulty();
+        AionBlock best = this.chain.getBestBlock();
+        this.p2pMgr.getNodeMgr().updateSelfInfo(selfTd, best.getNumber(), best.getHash());
 
         // trigger send headers routine immediately
         if(_remoteTotalDiff.compareTo(selfTd) > 0) {
