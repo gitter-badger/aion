@@ -90,6 +90,9 @@ public final class ReqBlocksBodiesHandler extends Handler {
             List<byte[]> blockBodies = new ArrayList<>();
 
             // read from cache, then block store
+            // break if timeout, queried blocks bodies will be on same order
+            // the missing part will not be assembled inside sync validateAndAddBlocks
+
             long start = System.currentTimeMillis();
             for (byte[] hash : hashes) {
                 byte[] blockBytes = cache.get(ByteArrayWrapper.wrap(hash));
