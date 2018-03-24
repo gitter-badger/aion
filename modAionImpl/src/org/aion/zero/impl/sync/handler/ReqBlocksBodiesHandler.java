@@ -113,7 +113,8 @@ public final class ReqBlocksBodiesHandler extends Handler {
                     break;
             }
 
-            this.p2pMgr.send(_nodeIdHashcode, new ResBlocksBodies(blockBodies));
+            if(blockBodies.size() > 0)
+                this.p2pMgr.send(_nodeIdHashcode, new ResBlocksBodies(blockBodies));
             this.log.debug("<req-bodies req-take={} res-take={} from-node={}>", reqBlocks.getBlocksHashes().size(),
                     blockBodies.size(), _displayId);
 
